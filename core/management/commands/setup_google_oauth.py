@@ -46,7 +46,8 @@ class Command(BaseCommand):
         # 1. Mettre à jour le Site (requis par allauth)
         site, _ = Site.objects.get_or_create(id=1)
         site.domain = domain
-        site.name = "PIGOE — Église des Assemblées de Dieu, Temple de la Grâce"
+        # django.contrib.sites.models.Site.name est limité à 50 caractères
+        site.name = "PIGOE — Temple de la Grâce (Bassar)"
         site.save()
         self.stdout.write(f"Site configuré : {site.domain}")
 

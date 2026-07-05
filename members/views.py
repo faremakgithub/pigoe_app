@@ -1,3 +1,14 @@
-from django.shortcuts import render
+from rest_framework import viewsets
 
-# Create your views here.
+from .models import Family, Member
+from .serializers import FamilySerializer, MemberSerializer
+
+
+class FamilyViewSet(viewsets.ModelViewSet):
+    queryset = Family.objects.all()
+    serializer_class = FamilySerializer
+
+
+class MemberViewSet(viewsets.ModelViewSet):
+    queryset = Member.objects.select_related("family").all()
+    serializer_class = MemberSerializer

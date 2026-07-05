@@ -8,7 +8,7 @@ Ce projet est l'implémentation directe de :
 - **FEB v2.0** — FAREMAK Enterprise Blueprint (25 principes directeurs)
 - **Architecture Vision PIGOE v1** — ADR-0011 (périmètre MVP validé Session ARB 001)
 - **ADR-0012** — Django comme framework backend
-- **ADR-0013** — Railway comme plateforme d'hébergement MVP
+- **ADR-0013 (révisé 2026-07-05)** — LWS cPanel comme plateforme d'hébergement MVP (Railway abandonné avant tout déploiement public, cf. `LWS_DEPLOY.md`)
 - **ADR-0014** — PayDunya comme agrégateur Mobile Money (Togo)
 - **Business Architecture PIGOE v1** — 20 user stories, validée Session ARB 002
 
@@ -37,15 +37,10 @@ L'admin Django est accessible sur `/admin/` — il sert de premier client de
 l'API pendant les Phases 1-2 (ADR-0012), avant le développement d'un
 frontend dédié.
 
-## Déploiement Railway (ADR-0013)
+## Déploiement LWS cPanel (ADR-0013 révisé)
 
-1. Connecter ce dépôt à un nouveau projet Railway
-2. Ajouter un service PostgreSQL — `DATABASE_URL` est injecté automatiquement
-3. Configurer les variables d'environnement :
-   - `DJANGO_SECRET_KEY` (générer une clé forte, ne jamais committer)
-   - `DJANGO_DEBUG=False`
-   - `DJANGO_ALLOWED_HOSTS=<votre-domaine>.up.railway.app`
-4. Le `Procfile` exécute automatiquement les migrations au déploiement
+Voir [LWS_DEPLOY.md](LWS_DEPLOY.md) pour la procédure complète (sous-domaine,
+Setup Python App, variables d'environnement, migrations, Passenger).
 
 ## Organisation pilote
 
@@ -67,10 +62,10 @@ python manage.py seed_organization
 - [x] Test de bout en bout validé — y compris détection de doublon (US-03)
 - [x] Organisation pilote identifiée et commande d'initialisation prête
 - [ ] Authentification utilisateur finale (OAuth Google) — à configurer avant déploiement public
-- [ ] Premier déploiement Railway accessible publiquement
+- [ ] Premier déploiement LWS accessible publiquement
 
 ## Sécurité — points d'attention avant mise en production
 
 - `SECRET_KEY` actuelle est un placeholder de développement — **à régénérer avant tout déploiement**
 - Le mot de passe du superuser de démonstration (`admin`) doit être changé immédiatement
-- Conformément à US-12, le chiffrement au repos des données financières (`Contribution`) reste à activer au niveau infrastructure Railway/PostgreSQL avant la Phase 3
+- Conformément à US-12, le chiffrement au repos des données financières (`Contribution`) reste à activer au niveau infrastructure LWS/PostgreSQL avant la Phase 3

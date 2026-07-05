@@ -6,6 +6,8 @@ staticfiles/
 *.egg-info/
 .DS_Store
 .venv/
+.venv*/
+venv/
 
 # Clés privées — ne jamais committer (incident du 2026-07-05 : id_rsa* commité par erreur)
 id_rsa

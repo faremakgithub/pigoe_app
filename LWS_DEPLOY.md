@@ -181,13 +181,9 @@ Dans cPanel → **Setup Python App**, localiser votre application et cliquer **R
 
 ---
 
-## Note sur la coexistence Railway / LWS
+## Décision d'hébergement (2026-07-05)
 
-Vous pouvez maintenir les deux déploiements en parallèle :
-- **Railway** → environnement de développement/test (push GitHub → redéploiement automatique)
-- **LWS** → environnement de production stable (mise à jour manuelle via SSH)
-
-Les deux utilisent le même codebase et le même `config/settings.py` de base.
-Seul `DJANGO_SETTINGS_MODULE` diffère :
-- Railway → `config.settings` (lit `DATABASE_URL`)
-- LWS → `config.settings_lws` (lit les variables DB_* individuelles)
+LWS cPanel est la seule cible de déploiement retenue pour PIGOE — Railway a
+été abandonné avant tout déploiement public afin d'éviter la double
+maintenance en solo. `config/settings.py` reste la base commune (dev local
+en SQLite) ; `config/settings_lws.py` l'étend pour la production.

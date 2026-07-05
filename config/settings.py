@@ -3,13 +3,13 @@ Django settings for PIGOE — FAREMAK SERVICES.
 
 Configuration alignée sur :
 - ADR-0012 : Django comme framework backend
-- ADR-0013 : Railway comme plateforme d'hébergement MVP
+- ADR-0013 (révisé) : LWS cPanel comme plateforme d'hébergement MVP —
+  voir config/settings_lws.py et LWS_DEPLOY.md pour la configuration de
+  production complète (Railway a été abandonné, cf. décision du 2026-07-05).
 - ADR-0002 : Architecture API First obligatoire (Django Rest Framework)
 - ADR-0003 : PostgreSQL comme moteur de données principal (production)
 
 En développement local, SQLite est utilisé par défaut pour la simplicité.
-DATABASE_URL (fourni automatiquement par Railway) bascule sur PostgreSQL
-sans aucune modification de code — voir section Database ci-dessous.
 """
 
 import os
@@ -19,20 +19,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # SECURITY WARNING: en production, SECRET_KEY doit venir d'une variable
-# d'environnement (Railway), jamais être committée en clair.
+# d'environnement (cPanel Setup Python App), jamais être committée en clair.
 SECRET_KEY = os.environ.get(
     "DJANGO_SECRET_KEY",
     "django-insecure-dev-only-change-in-production",
 )
 
-# SECURITY WARNING: DEBUG doit être False en production (Railway le force
-# via la variable d'environnement DJANGO_DEBUG=False).
+# SECURITY WARNING: DEBUG doit être False en production (settings_lws.py le
+# force explicitement, indépendamment de cette variable d'environnement).
 DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
-# Railway place l'application derrière un proxy TLS-terminating — sans ce
-# réglage, Django considère à tort toutes les requêtes comme non sécurisées.
+# L'application est servie derrière un proxy TLS-terminating (Apache/Passenger
+# sur LWS) — sans ce réglage, Django considère à tort toutes les requêtes
+# comme non sécurisées.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 CSRF_TRUSTED_ORIGINS = [
     f"https://{h}" for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1")
@@ -96,24 +97,16 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 
-# Database — ADR-0003 (PostgreSQL) + ADR-0013 (Railway)
-# En local : SQLite par défaut. Sur Railway : DATABASE_URL est injecté
-# automatiquement par le service PostgreSQL managé, et utilisé tel quel.
+# Database — ADR-0003 (PostgreSQL). En local : SQLite par défaut.
+# En production (LWS), settings_lws.py écrase entièrement DATABASES avec
+# la configuration PostgreSQL cPanel — voir ce fichier.
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
-if DATABASE_URL:
-    import dj_database_url
-    DATABASES = {
-        "default": dj_database_url.config(default=DATABASE_URL, conn_max_age=600)
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+}
 
 
 # Password validation
