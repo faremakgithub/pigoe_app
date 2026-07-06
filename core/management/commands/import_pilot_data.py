@@ -52,7 +52,7 @@ class Command(BaseCommand):
         with transaction.atomic():
             self._import_churches(content, organization)
             self._import_members(content, organization)
-            self._import_account_plans(content, organization, import_user)
+            self._import_account_plans(content, organization)
             self._import_event_types(content, organization)
             self._import_dimes(content, organization, import_user)
             self._import_finances(content, organization, import_user)
