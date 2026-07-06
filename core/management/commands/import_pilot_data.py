@@ -181,26 +181,26 @@ class Command(BaseCommand):
             columns = [col.strip(' `') for col in match.group(1).split(",")]
             for values in self._parse_insert_values(match.group(0)):
                 row = dict(zip(columns, values))
-            Church.objects.update_or_create(
-                legacy_id=row.get("id"),
-                defaults={
-                    "organization": organization,
-                    "hierarchy": row.get("hierarchie") or "",
-                    "name": row.get("nom_eglise") or "",
-                    "address": row.get("adresse") or "",
-                    "location": row.get("localite") or "",
-                    "annex_count": row.get("nombre_annexes") or 0,
-                    "domain": row.get("domaine_eglise") or "",
-                    "member_count": row.get("nombre_fideles") or 0,
-                    "founded_at": self._safe_parse_date(row.get("date_creation")),
-                    "photo_main": row.get("photo_principale") or "",
-                    "photo_secondary": row.get("photo_secondaire") or "",
-                    "created_by_id": row.get("created_by"),
-                    "created_at": self._parse_datetime_field(row.get("created_at")),
-                    "updated_at": self._parse_datetime_field(row.get("updated_at")),
-                    "deleted_at": self._parse_datetime_field(row.get("deleted_at")),
-                },
-            )
+                Church.objects.update_or_create(
+                    legacy_id=row.get("id"),
+                    defaults={
+                        "organization": organization,
+                        "hierarchy": row.get("hierarchie") or "",
+                        "name": row.get("nom_eglise") or "",
+                        "address": row.get("adresse") or "",
+                        "location": row.get("localite") or "",
+                        "annex_count": row.get("nombre_annexes") or 0,
+                        "domain": row.get("domaine_eglise") or "",
+                        "member_count": row.get("nombre_fideles") or 0,
+                        "founded_at": self._safe_parse_date(row.get("date_creation")),
+                        "photo_main": row.get("photo_principale") or "",
+                        "photo_secondary": row.get("photo_secondaire") or "",
+                        "created_by_id": row.get("created_by"),
+                        "created_at": self._parse_datetime_field(row.get("created_at")),
+                        "updated_at": self._parse_datetime_field(row.get("updated_at")),
+                        "deleted_at": self._parse_datetime_field(row.get("deleted_at")),
+                    },
+                )
 
         self.stdout.write(self.style.SUCCESS("Import des églises terminé."))
 
