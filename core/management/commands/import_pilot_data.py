@@ -5,6 +5,7 @@ from pathlib import Path
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 
 from core.models import Church, Organization
@@ -181,25 +182,29 @@ class Command(BaseCommand):
             columns = [col.strip(' `') for col in match.group(1).split(",")]
             for values in self._parse_insert_values(match.group(0)):
                 row = dict(zip(columns, values))
+                church_defaults = {
+                    "organization": organization,
+                    "hierarchy": row.get("hierarchie") or "",
+                    "name": row.get("nom_eglise") or "",
+                    "address": row.get("adresse") or "",
+                    "location": row.get("localite") or "",
+                    "annex_count": row.get("nombre_annexes") or 0,
+                    "domain": row.get("domaine_eglise") or "",
+                    "member_count": row.get("nombre_fideles") or 0,
+                    "founded_at": self._safe_parse_date(row.get("date_creation")),
+                    "photo_main": row.get("photo_principale") or "",
+                    "photo_secondary": row.get("photo_secondaire") or "",
+                    "created_at": self._parse_datetime_field(row.get("created_at")),
+                    "updated_at": self._parse_datetime_field(row.get("updated_at")),
+                    "deleted_at": self._parse_datetime_field(row.get("deleted_at")),
+                }
+                created_by = self._get_user_by_id(row.get("created_by"))
+                if created_by is not None:
+                    church_defaults["created_by"] = created_by
+
                 Church.objects.update_or_create(
                     legacy_id=row.get("id"),
-                    defaults={
-                        "organization": organization,
-                        "hierarchy": row.get("hierarchie") or "",
-                        "name": row.get("nom_eglise") or "",
-                        "address": row.get("adresse") or "",
-                        "location": row.get("localite") or "",
-                        "annex_count": row.get("nombre_annexes") or 0,
-                        "domain": row.get("domaine_eglise") or "",
-                        "member_count": row.get("nombre_fideles") or 0,
-                        "founded_at": self._safe_parse_date(row.get("date_creation")),
-                        "photo_main": row.get("photo_principale") or "",
-                        "photo_secondary": row.get("photo_secondaire") or "",
-                        "created_by_id": row.get("created_by"),
-                        "created_at": self._parse_datetime_field(row.get("created_at")),
-                        "updated_at": self._parse_datetime_field(row.get("updated_at")),
-                        "deleted_at": self._parse_datetime_field(row.get("deleted_at")),
-                    },
+                    defaults=church_defaults,
                 )
 
         self.stdout.write(self.style.SUCCESS("Import des églises terminé."))
@@ -276,7 +281,7 @@ class Command(BaseCommand):
             return None
 
     def _safe_parse_datetime(self, value):
-        """Parse a datetime string safely, returning None for invalid or zero datetimes."""
+        """Parse a datetime string safely, returning an aware datetime when possible."""
         if not value:
             return None
         if isinstance(value, str) and value.startswith("0000-00-00"):
@@ -284,13 +289,16 @@ class Command(BaseCommand):
         try:
             dt = parse_datetime(value)
             if dt is not None:
+                if timezone.is_naive(dt):
+                    return timezone.make_aware(dt, timezone.get_default_timezone())
                 return dt
-            # fallback: try parsing date-only and return midnight
+            # fallback: try parsing date-only and return midnight aware
             d = self._safe_parse_date(value)
             if d:
-                from datetime import datetime
-
-                return datetime(d.year, d.month, d.day)
+                return timezone.make_aware(
+                    timezone.datetime(d.year, d.month, d.day),
+                    timezone.get_default_timezone(),
+                )
             return None
         except Exception:
             return None
@@ -321,6 +329,11 @@ class Command(BaseCommand):
             },
         )
         return user
+
+    def _get_user_by_id(self, user_id):
+        if user_id is None:
+            return None
+        return User.objects.filter(id=user_id).first()
 
     def _import_dimes(self, content, organization, import_user):
         matches = self._find_insert_matches(content, "dimes")
@@ -377,20 +390,25 @@ class Command(BaseCommand):
                 if row.get("church_id") is not None:
                     church = Church.objects.filter(legacy_id=row.get("church_id")).first()
 
+                account_plan_defaults = {
+                    "organization": organization,
+                    "church": church,
+                    "title": row.get("intitule") or "",
+                    "account_number": row.get("numero_compte") or "",
+                    "account_type": row.get("type_compte") or "les_deux",
+                    "description": row.get("description") or "",
+                    "created_at": self._parse_datetime_field(row.get("created_at")),
+                    "updated_at": self._parse_datetime_field(row.get("updated_at")),
+                    "deleted_at": self._parse_datetime_field(row.get("deleted_at")),
+                }
+
+                created_by = self._get_user_by_id(row.get("created_by"))
+                if created_by is not None:
+                    account_plan_defaults["created_by"] = created_by
+
                 AccountPlan.objects.update_or_create(
                     legacy_id=row.get("id"),
-                    defaults={
-                        "organization": organization,
-                        "church": church,
-                        "title": row.get("intitule") or "",
-                        "account_number": row.get("numero_compte") or "",
-                        "account_type": row.get("type_compte") or "les_deux",
-                        "description": row.get("description") or "",
-                        "created_by_id": row.get("created_by"),
-                        "created_at": self._parse_datetime_field(row.get("created_at")),
-                        "updated_at": self._parse_datetime_field(row.get("updated_at")),
-                        "deleted_at": self._parse_datetime_field(row.get("deleted_at")),
-                    },
+                    defaults=account_plan_defaults,
                 )
 
         self.stdout.write(self.style.SUCCESS("Import des plans comptables terminé."))
@@ -439,24 +457,30 @@ class Command(BaseCommand):
                 debit = Decimal(str(row.get("debit"))) if row.get("debit") is not None else Decimal("0")
                 credit = Decimal(str(row.get("credit"))) if row.get("credit") is not None else Decimal("0")
 
+                ledger_entry_defaults = {
+                    "organization": organization,
+                    "church": church,
+                    "account_plan": account_plan,
+                    "debit": debit,
+                    "credit": credit,
+                    "title": row.get("intitule") or "",
+                    "operation_date": self._safe_parse_date(row.get("date_operation")),
+                    "payment_method": row.get("mode_paiement") or "",
+                    "description": row.get("description") or "",
+                    "reference_number": row.get("numero_piece") or "",
+                    "created_at": self._parse_datetime_field(row.get("created_at")),
+                    "updated_at": self._parse_datetime_field(row.get("updated_at")),
+                    "deleted_at": self._parse_datetime_field(row.get("deleted_at")),
+                }
+
+                if row.get("created_by") is not None:
+                    created_by = User.objects.filter(id=row.get("created_by")).first()
+                    if created_by is not None:
+                        ledger_entry_defaults["created_by"] = created_by
+
                 LedgerEntry.objects.update_or_create(
                     legacy_id=row.get("id"),
-                    defaults={
-                        "organization": organization,
-                        "church": church,
-                        "account_plan": account_plan,
-                        "debit": debit,
-                        "credit": credit,
-                        "title": row.get("intitule") or "",
-                        "operation_date": self._safe_parse_date(row.get("date_operation")),
-                        "payment_method": row.get("mode_paiement") or "",
-                        "description": row.get("description") or "",
-                        "reference_number": row.get("numero_piece") or "",
-                        "created_by_id": row.get("created_by"),
-                        "created_at": self._parse_datetime_field(row.get("created_at")),
-                        "updated_at": self._parse_datetime_field(row.get("updated_at")),
-                        "deleted_at": self._parse_datetime_field(row.get("deleted_at")),
-                    },
+                    defaults=ledger_entry_defaults,
                 )
 
         self.stdout.write(self.style.SUCCESS("Import des écritures financières terminé."))
