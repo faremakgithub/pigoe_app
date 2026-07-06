@@ -192,7 +192,7 @@ class Command(BaseCommand):
                     "annex_count": row.get("nombre_annexes") or 0,
                     "domain": row.get("domaine_eglise") or "",
                     "member_count": row.get("nombre_fideles") or 0,
-                    "founded_at": parse_date(row.get("date_creation")) if row.get("date_creation") else None,
+                    "founded_at": self._safe_parse_date(row.get("date_creation")),
                     "photo_main": row.get("photo_principale") or "",
                     "photo_secondary": row.get("photo_secondaire") or "",
                     "created_by_id": row.get("created_by"),
@@ -230,17 +230,17 @@ class Command(BaseCommand):
                         "phone": self._normalize_phone(row.get("contact_parent"), row.get("id")),
                         "email": row.get("email") or "",
                         "sex": row.get("sexe") or None,
-                        "birth_date": parse_date(row.get("date_naissance")) if row.get("date_naissance") else None,
+                        "birth_date": self._safe_parse_date(row.get("date_naissance")),
                         "birth_place": row.get("lieu_naissance") or "",
                         "address": row.get("domicile") or "",
                         "profession": row.get("profession") or "",
                         "nationality": row.get("nationalite") or "",
-                        "baptism_date": parse_date(row.get("date_bapteme")) if row.get("date_bapteme") else None,
+                        "baptism_date": self._safe_parse_date(row.get("date_bapteme")),
                         "baptism_place": row.get("lieu_bapteme") or "",
                         "member_group": row.get("groupe_membre") or "",
-                        "conversion_date": parse_date(row.get("date_conversion")) if row.get("date_conversion") else None,
+                        "conversion_date": self._safe_parse_date(row.get("date_conversion")),
                         "conversion_place": row.get("lieu_conversion") or "",
-                        "holy_spirit_date": parse_date(row.get("date_saint_esprit")) if row.get("date_saint_esprit") else None,
+                        "holy_spirit_date": self._safe_parse_date(row.get("date_saint_esprit")),
                         "holy_spirit_place": row.get("lieu_saint_esprit") or "",
                         "marital_status": self._normalize_marital_status(row.get("situation_matrimoniale") or ""),
                         "children_count": row.get("nombre_enfants"),
@@ -258,9 +258,42 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("Import des membres terminé."))
 
     def _parse_datetime_field(self, value):
-        if not value or value == "0000-00-00 00:00:00":
+        return self._safe_parse_datetime(value)
+
+    def _safe_parse_date(self, value):
+        """Parse a date string safely, returning None for invalid or zero dates."""
+        if not value:
             return None
-        return parse_datetime(value)
+        # MySQL zero-date values
+        if isinstance(value, str) and value.startswith("0000-00-00"):
+            return None
+        # Strip time portion if present
+        if isinstance(value, str) and " " in value:
+            value = value.split(" ", 1)[0]
+        try:
+            return parse_date(value)
+        except Exception:
+            return None
+
+    def _safe_parse_datetime(self, value):
+        """Parse a datetime string safely, returning None for invalid or zero datetimes."""
+        if not value:
+            return None
+        if isinstance(value, str) and value.startswith("0000-00-00"):
+            return None
+        try:
+            dt = parse_datetime(value)
+            if dt is not None:
+                return dt
+            # fallback: try parsing date-only and return midnight
+            d = self._safe_parse_date(value)
+            if d:
+                from datetime import datetime
+
+                return datetime(d.year, d.month, d.day)
+            return None
+        except Exception:
+            return None
 
     def _normalize_phone(self, phone, row_id):
         if phone and isinstance(phone, str) and phone.startswith("+228") and len(phone) == 12:
@@ -415,7 +448,7 @@ class Command(BaseCommand):
                         "debit": debit,
                         "credit": credit,
                         "title": row.get("intitule") or "",
-                        "operation_date": parse_date(row.get("date_operation")) if row.get("date_operation") else None,
+                        "operation_date": self._safe_parse_date(row.get("date_operation")),
                         "payment_method": row.get("mode_paiement") or "",
                         "description": row.get("description") or "",
                         "reference_number": row.get("numero_piece") or "",
@@ -432,7 +465,7 @@ class Command(BaseCommand):
         if not row.get("date_event"):
             return None
         time_part = row.get("heure_event") or "00:00:00"
-        return parse_datetime(f"{row.get('date_event')} {time_part}")
+        return self._safe_parse_datetime(f"{row.get('date_event')} {time_part}")
 
     def _import_events(self, content, organization):
         matches = self._find_insert_matches(content, "evenements")
