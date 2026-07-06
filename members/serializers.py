@@ -16,7 +16,15 @@ class MemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = Member
         fields = [
-            "id", "organization", "family", "first_name", "last_name",
-            "full_name", "phone", "email", "status", "created_at", "updated_at",
+            "id", "organization", "church", "legacy_id", "family",
+            "membership_number", "has_left", "is_deceased", "first_name",
+            "last_name", "full_name", "phone", "email", "sex",
+            "birth_date", "birth_place", "address", "profession",
+            "nationality", "baptism_date", "baptism_place", "member_group",
+            "conversion_date", "conversion_place", "holy_spirit_date",
+            "holy_spirit_place", "marital_status", "children_count",
+            "spouse", "guardian", "parent_contact", "activities",
+            "member_type", "status", "deleted_at", "created_at",
+            "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at"]

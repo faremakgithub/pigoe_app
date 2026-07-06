@@ -1,6 +1,21 @@
 from django.contrib import admin
 
-from .models import Contribution
+from .models import AccountPlan, Contribution, LedgerEntry
+
+
+@admin.register(AccountPlan)
+class AccountPlanAdmin(admin.ModelAdmin):
+    list_display = ["account_number", "title", "organization", "church", "account_type"]
+    list_filter = ["account_type", "organization"]
+    search_fields = ["title", "account_number", "description"]
+
+
+@admin.register(LedgerEntry)
+class LedgerEntryAdmin(admin.ModelAdmin):
+    list_display = ["title", "organization", "church", "account_plan", "debit", "credit", "operation_date"]
+    list_filter = ["organization", "church", "account_plan"]
+    search_fields = ["title", "description", "reference_number"]
+    date_hierarchy = "operation_date"
 
 
 @admin.register(Contribution)

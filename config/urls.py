@@ -4,7 +4,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from communication.views import AnnouncementViewSet
-from core.views import OrganizationViewSet
+from core.views import ChurchViewSet, OrganizationViewSet
 from events.views import AttendanceViewSet, EventViewSet
 from finance.views import ContributionViewSet
 from members.views import FamilyViewSet, MemberViewSet
@@ -17,6 +17,7 @@ def home_view(request):
 # API First (ADR-0002) — un ViewSet DRF par modèle métier, exposé sous /api/v1/
 router = DefaultRouter()
 router.register("organizations", OrganizationViewSet)
+router.register("churches", ChurchViewSet)
 router.register("families", FamilyViewSet)
 router.register("members", MemberViewSet)
 router.register("contributions", ContributionViewSet)

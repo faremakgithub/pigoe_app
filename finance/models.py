@@ -1,8 +1,83 @@
 from django.conf import settings
 from django.db import models
 
-from core.models import Organization
+from core.models import Church, Organization
 from members.models import Member
+
+
+class AccountPlan(models.Model):
+    """Plan comptable importé depuis la base pilote."""
+
+    class AccountType(models.TextChoices):
+        DEBIT = "debit", "Débit"
+        CREDIT = "credit", "Crédit"
+        BOTH = "les_deux", "Les deux"
+
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    church = models.ForeignKey(
+        Church, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="account_plans",
+    )
+    legacy_id = models.BigIntegerField(null=True, blank=True, unique=True)
+    title = models.CharField(max_length=255)
+    account_number = models.CharField(max_length=20, blank=True)
+    account_type = models.CharField(
+        max_length=10, choices=AccountType.choices, default=AccountType.BOTH,
+    )
+    description = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="created_account_plans",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Plan comptable"
+        verbose_name_plural = "Plans comptables"
+        ordering = ["account_number"]
+
+    def __str__(self):
+        return f"{self.account_number} — {self.title}"
+
+
+class LedgerEntry(models.Model):
+    """Écriture financière importée depuis la base pilote."""
+
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    church = models.ForeignKey(
+        Church, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="ledger_entries",
+    )
+    account_plan = models.ForeignKey(
+        AccountPlan, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="ledger_entries",
+    )
+    legacy_id = models.BigIntegerField(null=True, blank=True, unique=True)
+    debit = models.DecimalField(max_digits=10, decimal_places=0, default=0)
+    credit = models.DecimalField(max_digits=10, decimal_places=0, default=0)
+    title = models.CharField(max_length=255, blank=True)
+    operation_date = models.DateField(null=True, blank=True)
+    payment_method = models.CharField(max_length=50, blank=True)
+    description = models.TextField(blank=True)
+    reference_number = models.CharField(max_length=50, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="created_ledger_entries",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Écriture comptable"
+        verbose_name_plural = "Écritures comptables"
+        ordering = ["-operation_date", "-created_at"]
+
+    def __str__(self):
+        amount = self.credit - self.debit
+        return f"{self.title} — {amount} FCFA"
 
 
 class Contribution(models.Model):
