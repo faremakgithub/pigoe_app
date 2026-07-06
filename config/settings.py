@@ -129,8 +129,12 @@ USE_TZ = True
 
 # Static files
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+# Ensure static source and destination directories exist
+for static_dir in STATICFILES_DIRS + [STATIC_ROOT]:
+    os.makedirs(static_dir, exist_ok=True)
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
